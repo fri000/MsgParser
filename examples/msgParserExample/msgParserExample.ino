@@ -17,19 +17,21 @@
 
 //list of strings. You can have as many as you want.
 //each string is saved in flash memory only and does not take up any ram.
-char s0[] PROGMEM = "hi";
-char s1[] PROGMEM = "bye";
-char s2[] PROGMEM = "echo";
-char s3[] PROGMEM = "add";
+char s0[] PROGMEM = "?";	char help0[] PROGMEM = "Prints this help text.";
+char s1[] PROGMEM = "hi";	char help1[] PROGMEM = "Prints a hello message.";
+char s2[] PROGMEM = "bye";	char help2[] PROGMEM = "Prints a goodbye message.";
+char s3[] PROGMEM = "echo";	char help3[] PROGMEM = "[a number]. Prints back the number.";
+char s4[] PROGMEM = "add";	char help4[] PROGMEM = "[x] [y]. Prints results of x + y.";
 
 
 //This is our look up table. It says which function to call when a particular string is received
 FuncEntry_t functionTable[] PROGMEM = {
-//   String     Function
-    {s0,        sayHello        },
-    {s1,        sayBye          },
-    {s2,        echo            },
-    {s3,        addTwoNumbers   }
+//  String, help, Function
+    {s0, help0,   printHelp       },
+    {s1, help1,   sayHello        },
+    {s2, help2,   sayBye          },
+    {s3, help3,   echo            },
+    {s4, help4,   addTwoNumbers   }
     };
 
 
@@ -43,10 +45,11 @@ MsgParser myParser;     //this creates our parser
 
 void setup()
 {
-    Serial.begin(9600);
+    Serial.begin(115200);
     Serial.println("Ready for action");
     myParser.setTable(functionTable, funcTableLength);      //tell the parser to use our lookup table
     myParser.setHandlerForCmdNotFound(commandNotFound);     //Tell the parser which function to call when it gets a command it doesn't handle
+	printHelp();
 }// end setup
 
 
@@ -67,7 +70,16 @@ void loop()
 
 
 
-
+void printHelp()
+{
+	for( int i = 0; i < myParser.numCmds(); i++)
+	{
+		Serial.print(myParser.cmdString(i)); //print the command name
+		Serial.print(" - ");
+		Serial.print(myParser.cmdDesc(i)); //print the command description
+		Serial.println("");
+	}
+}
 
 
 
@@ -116,7 +128,7 @@ void addTwoNumbers()
 
 
 
-//This function is called when the msgParser gets a command that it didnt handle.
+//This function is called when the msgParser gets a command that it didn't handle.
 void commandNotFound(uint8_t* pCmd, uint16_t length)
 {
     Serial.print("Command not found: ");

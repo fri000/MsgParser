@@ -22,7 +22,7 @@
 //********************** CONSTANTS **********************
 
 static const uint8_t MSGPARSER_MAX_BUFFER_SIZE = 64;                //This is the max length of a received message
-static const uint8_t MSGPARSER_MAX_COMMAND_SIZE = 32;               //This is the max length of the "command" part of the message
+static const uint8_t MSGPARSER_DESCRIPTION_SIZE = 128;              //This is the length of a description string, that is the help msg for a command.
 
 
 
@@ -38,8 +38,9 @@ typedef void (*cmdNotFoundHandler_t)(uint8_t*, uint16_t);
 
 typedef struct
 {
-    char* myCmd;            //pointer to a null terminated char array
-    FuncPtr_t myFunction;   //pointer to a function
+    char* pCmdString;  //pointer to a null terminated char array
+    char* pDescString; //Short help text about this command. Pointer to a null terminated char array
+    FuncPtr_t pFunc;   //pointer to a function
 
 }FuncEntry_t;
 
@@ -64,6 +65,9 @@ public:
     long    getLong();
     int     getInt();
     float   getFloat();
+	int     numCmds();
+	char*   cmdString(uint8_t cmdIndex);
+	char*   cmdDesc(uint8_t cmdIndex);
     uint8_t version();
 
 
@@ -89,7 +93,7 @@ private:
     //***************************************************
     //  Private Variables
     //***************************************************
-    FuncEntry_t bufStruct;
+    FuncEntry_t m_bufStruct;
 
     char    buffer[MSGPARSER_MAX_BUFFER_SIZE];     //buffer that holds incoming data
     uint8_t bufferlength;                          //length of this buffer, which will get set to MAX_BUFFER_SIZE
@@ -111,6 +115,7 @@ private:
     uint8_t funcTableLength;                       //length of the functions table
 
     cmdNotFoundHandler_t pCmdNotFoundFunc;         // Function to call if we received a command that we are not going to handle.
+	char   m_pDescBuf[MSGPARSER_DESCRIPTION_SIZE];  // When we returning a string from PROGMEM, we first copy it here and return pointer to this buffer.
 }; //end MsgParser
 
 

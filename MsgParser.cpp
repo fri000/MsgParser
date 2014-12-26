@@ -2,7 +2,8 @@
  *  Ilya Brutman
  *
  */
-
+
+
 #include <avr/pgmspace.h>
 #include <inttypes.h>
 #include <string.h>
@@ -11,7 +12,8 @@
 
 
 
-//===============================================================================
+
+//===============================================================================
 // Constructor
 //===============================================================================
 MsgParser::MsgParser()
@@ -39,7 +41,8 @@ MsgParser::MsgParser()
 
 
 
-//================================================================================
+
+//================================================================================
 // FUNCTION:    void setTable(...)
 //
 // DESCRIPTION: sets a new function table to use
@@ -59,7 +62,8 @@ void MsgParser::setTable(FuncEntry_t* newFunctTable, uint8_t newFunctTableLength
 }// end setTable
 
 
-
+
+
 
 
 
@@ -74,7 +78,8 @@ void MsgParser::setTable(FuncEntry_t* newFunctTable, uint8_t newFunctTableLength
 // RETURNS:     Nothing
 //================================================================================
 void MsgParser::useStartByteSet(bool newStatus)
-{
+
+{
     useStartByte = newStatus;
 
     //if we are currently waiting for the start byte and the new option is to
@@ -95,7 +100,8 @@ void MsgParser::useStartByteSet(bool newStatus)
 
 
 
-//================================================================================
+
+//================================================================================
 // FUNCTION:    void setHandlerForCmdNotFound(...)
 //
 // DESCRIPTION: Sets a new call handler function for when a command is not found.
@@ -167,9 +173,9 @@ void MsgParser::processByte(uint8_t newByte)
             uint8_t i = 0;                                  //index variable
             while( (msgFound == false) && (i < funcTableLength) )
             {
-                memcpy_P( &bufStruct, &(funcTable[i]), sizeof(bufStruct) );     //pull a function table entry out of flash and into ram.
+                memcpy_P( &m_bufStruct, &(funcTable[i]), sizeof(m_bufStruct) );     //pull a function table entry out of flash and into ram.
 
-                if ( strcmp_P( msgParserCommand, bufStruct.myCmd ) == 0)
+                if ( strcmp_P( msgParserCommand, m_bufStruct.pCmdString ) == 0)
                 {
                     msgFound = true;
                 }
@@ -184,7 +190,7 @@ void MsgParser::processByte(uint8_t newByte)
             if(i < funcTableLength) //check if the message was found in the table
             {
                 //we have a match, call the corresponding function
-                (*bufStruct.myFunction)();
+                (*m_bufStruct.pFunc)();
             }
             else
             {
@@ -209,7 +215,7 @@ void MsgParser::processByte(uint8_t newByte)
         else
         {
             //the new byte is not the end byte
-            //therefor this is not the end of the message. add the received byte to the buffer
+            //therefore this is not the end of the message. add the received byte to the buffer
             buffer[bufferWriteIndex] = newByte;
             bufferWriteIndex++;
 
@@ -330,7 +336,8 @@ int MsgParser::getInt()
 //              Or 0, if no number is found in the remainder of the string
 //================================================================================
 float MsgParser::getFloat()
-{
+
+{
     char *numPtr;
     char *ptr = bufferReadPtr;                     // make ptr point to start of Buffer.
     char *rest;                                    // to point to the rest of the string after token extraction.
@@ -341,7 +348,8 @@ float MsgParser::getFloat()
     return( atof(numPtr) );
 
 }//end getFloat
-
+
+
 
 
 
@@ -374,8 +382,81 @@ void MsgParser::clearTheBuffer()
 
 
 
+//================================================================================
+// FUNCTION:    void numCmds(...)
+//
+// DESCRIPTION: Returns the number of commands
+//
+// INPUT:       None
+//
+// RETURNS:     
+//================================================================================
+int MsgParser::numCmds()
+{
+	return funcTableLength;
+}//end numCmds
 
 
+//================================================================================
+// FUNCTION:    void cmdString(...)
+//
+// DESCRIPTION: Returns the command string at the requested index
+//
+// INPUT:       None
+//
+// RETURNS:     Command string at the requested index
+//================================================================================
+char* MsgParser::cmdString(uint8_t cmdIndex)
+{
+	if(cmdIndex >= numCmds())
+	{
+		//The requested command index is out of range
+		return NULL;
+	}
+	
+	//pull a function table entry out of flash and into ram.
+	memcpy_P( &m_bufStruct, &(funcTable[cmdIndex]), sizeof(m_bufStruct) );     
+	
+	//Pull the command string out of flash and into ram
+	memcpy_P( m_pDescBuf, m_bufStruct.pCmdString, MSGPARSER_DESCRIPTION_SIZE);  
+	
+	return m_pDescBuf;
+}//end cmdString
+
+
+//================================================================================
+// FUNCTION:    void cmdDesc(...)
+//
+// DESCRIPTION: Returns the description of the command specified by the index
+//
+// INPUT:       None
+//
+// RETURNS:     Description of the command
+//================================================================================
+char* MsgParser::cmdDesc(uint8_t cmdIndex)
+{
+	if(cmdIndex >= numCmds())
+	{
+		//The requested command index is out of range
+		return NULL;
+	}
+	
+	//pull a function table entry out of flash and into ram.
+	memcpy_P( &m_bufStruct, &(funcTable[cmdIndex]), sizeof(m_bufStruct) );     
+	
+	//The description string is allowed to be null. Check if it exists.
+	if(m_bufStruct.pDescString != NULL)
+	{
+		//Pull the command string out of flash and into ram
+		memcpy_P( m_pDescBuf, m_bufStruct.pDescString, MSGPARSER_DESCRIPTION_SIZE);  
+		
+		return m_pDescBuf;
+	}
+	else
+	{
+		return NULL;
+	}
+}//end cmdDesc
 
 
 
