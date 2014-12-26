@@ -18,21 +18,23 @@
 //===============================================================================
 MsgParser::MsgParser()
 {
-    bufferlength     = MSGPARSER_MAX_BUFFER_SIZE;
-    bufferWriteIndex = 0;
-    bufferReadPtr    = buffer;
-    msgParserCommand = NULL;
-    msgStartByte     = '/';
-    msgEndByte       = '\r';    //by default, use the carriage return as the end byte
-    useStartByte     = false;
-    myState          = WAITING_FOR_START_BYTE; //This just needs to be some valid value, for now.
-    funcTable        = NULL;
-    funcTableLength  = 0;
-    pCmdNotFoundFunc = NULL;
+    m_BufferWriteIndex  = 0;
+    m_pRead             = m_pInputBuffer;
+    m_pMsgParserCommand = NULL;
+    m_msgStartByte      = '/';
+    m_msgEndByte        = '\r';    //by default, use the carriage return as the end byte
+    m_useStartByte        = false;
+    m_state             = WAITING_FOR_START_BYTE; //This just needs to be some valid value, for now.
+    m_pFuncTable        = NULL;
+    m_funcTableLength   = 0;
+    m_pCmdNotFoundFunc  = NULL;
+	
+	memset(m_pInputBuffer, NULL, MSGPARSER_INPUT_BUFFER_SIZE); 
+	memset(m_pDescBuf, NULL, MSGPARSER_DESCRIPTION_SIZE); 
 
-    // Call our useStartByteSet function to set myState to the correct state.
+    // Call our useStartByteSet function to set m_state to the correct state.
     // Our state will be based on whether we are using the start byte or not.
-    useStartByteSet(useStartByte);
+    useStartByteSet(m_useStartByte);
       
 }// end constructor
 
@@ -56,8 +58,8 @@ void MsgParser::setTable(FuncEntry_t* newFunctTable, uint8_t newFunctTableLength
 {
     if(newFunctTable != NULL)
     {
-        funcTable = newFunctTable;
-        funcTableLength = newFunctTableLength;
+        m_pFuncTable = newFunctTable;
+        m_funcTableLength = newFunctTableLength;
     }
 }// end setTable
 
@@ -80,16 +82,16 @@ void MsgParser::setTable(FuncEntry_t* newFunctTable, uint8_t newFunctTableLength
 void MsgParser::useStartByteSet(bool newStatus)
 
 {
-    useStartByte = newStatus;
+    m_useStartByte = newStatus;
 
     //if we are currently waiting for the start byte and the new option is to
     // not wait for the start byte
-    if( (myState == WAITING_FOR_START_BYTE) &&
-        (useStartByte == false)
+    if( (m_state == WAITING_FOR_START_BYTE) &&
+        (m_useStartByte == false)
       )
     {
         //then we have to stop waiting for it. We do this by updating our state.
-        myState = READING_MESSAGE;
+        m_state = READING_MESSAGE;
     }
     else
     {
@@ -114,7 +116,7 @@ void MsgParser::useStartByteSet(bool newStatus)
 //================================================================================
 void MsgParser::setHandlerForCmdNotFound(cmdNotFoundHandler_t pNewHandlerFunc)
 {
-    pCmdNotFoundFunc = pNewHandlerFunc;
+    m_pCmdNotFoundFunc = pNewHandlerFunc;
 }//end setHandlerForCmdNotFound
 
 
@@ -132,13 +134,13 @@ void MsgParser::setHandlerForCmdNotFound(cmdNotFoundHandler_t pNewHandlerFunc)
 //================================================================================
 void MsgParser::processByte(uint8_t newByte)
 {    
-    switch (myState)
+    switch (m_state)
     {
     case WAITING_FOR_START_BYTE:
 
-        if( newByte == msgStartByte )
+        if( newByte == m_msgStartByte )
         {
-            myState = READING_MESSAGE;
+            m_state = READING_MESSAGE;
         }
         else
         {
@@ -149,33 +151,33 @@ void MsgParser::processByte(uint8_t newByte)
 
     case READING_MESSAGE:
     
-        if( newByte == msgEndByte )
+        if( newByte == m_msgEndByte )
         {
             //we just got the end byte and the message is now fully received. Time to parse it.
-            if(useStartByte == true)
-                myState = WAITING_FOR_START_BYTE;
+            if(m_useStartByte == true)
+                m_state = WAITING_FOR_START_BYTE;
 
             //***process message***
             bool msgFound = false;
-            char *ptr = bufferReadPtr;                      // make ptr point to start of Buffer.
-            char *rest;                                     // to point to the rest of the string after token extraction.
+            char *ptr = m_pRead;                      // make ptr point to start of m_pInputBuffer.
+            char *rest;                               // to point to the rest of the string after token extraction.
 
 
             //We are about to edit our receive buffer, so make a copy of it first.
-            memcpy(origMsg, buffer, bufferWriteIndex);
+            memcpy(m_pOrigMsg, m_pInputBuffer, m_BufferWriteIndex);
 
 
-            msgParserCommand = strtok_r(ptr, " ", &rest);   //extract the command from the received message   [side note: this replaces the first space with a null]
-            bufferReadPtr = rest;                           // rest contains the leftover part..assign it to ptr...and start tokenizing again.
+            m_pMsgParserCommand = strtok_r(ptr, " ", &rest);   //extract the command from the received message   [side note: this replaces the first space with a null]
+            m_pRead = rest;                                    // rest contains the leftover part..assign it to ptr...and start tokenizing again.
 
 
             //search through the lookup table and try to find the string
             uint8_t i = 0;                                  //index variable
-            while( (msgFound == false) && (i < funcTableLength) )
+            while( (msgFound == false) && (i < m_funcTableLength) )
             {
-                memcpy_P( &m_bufStruct, &(funcTable[i]), sizeof(m_bufStruct) );     //pull a function table entry out of flash and into ram.
+                memcpy_P( &m_bufStruct, &(m_pFuncTable[i]), sizeof(m_bufStruct) );     //pull a function table entry out of flash and into ram.
 
-                if ( strcmp_P( msgParserCommand, m_bufStruct.pCmdString ) == 0)
+                if ( strcmp_P( m_pMsgParserCommand, m_bufStruct.pCmdString ) == 0)
                 {
                     msgFound = true;
                 }
@@ -187,7 +189,7 @@ void MsgParser::processByte(uint8_t newByte)
 
 
             //at this point we either found a matching string in the table or reached the end of it
-            if(i < funcTableLength) //check if the message was found in the table
+            if(i < m_funcTableLength) //check if the message was found in the table
             {
                 //we have a match, call the corresponding function
                 (*m_bufStruct.pFunc)();
@@ -196,10 +198,10 @@ void MsgParser::processByte(uint8_t newByte)
             {
                 //The received string was not found in our function table.
                 // Do we have a handler function that we can call when we have a command not found?
-                if(pCmdNotFoundFunc != NULL)
+                if(m_pCmdNotFoundFunc != NULL)
                 {
                     // Yes we do. Call that function and pass it the string that we didn't handle.
-                    (*pCmdNotFoundFunc)((uint8_t*)origMsg, bufferWriteIndex);
+                    (*m_pCmdNotFoundFunc)((uint8_t*)m_pOrigMsg, m_BufferWriteIndex);
                 }
                 else
                 {
@@ -216,22 +218,22 @@ void MsgParser::processByte(uint8_t newByte)
         {
             //the new byte is not the end byte
             //therefore this is not the end of the message. add the received byte to the buffer
-            buffer[bufferWriteIndex] = newByte;
-            bufferWriteIndex++;
+            m_pInputBuffer[m_BufferWriteIndex] = newByte;
+            m_BufferWriteIndex++;
 
             //check if we have reached the end of the buffer without receiving an end byte
-            if(bufferWriteIndex == bufferlength)
+            if(m_BufferWriteIndex == MSGPARSER_INPUT_BUFFER_SIZE)
             {
                 //yes we have, our buffer is full.
                 clearTheBuffer();
 
-                if(useStartByte == true)
+                if(m_useStartByte == true)
                 {
-                    myState = WAITING_FOR_START_BYTE;
+                    m_state = WAITING_FOR_START_BYTE;
                 }
                 else
                 {
-                    myState = READING_MESSAGE;
+                    m_state = READING_MESSAGE;
                 }
             }
             else
@@ -265,7 +267,7 @@ void MsgParser::processByte(uint8_t newByte)
 //================================================================================
 void MsgParser::setEndByte(uint8_t newEndByte)
 {
-    msgEndByte = newEndByte;
+    m_msgEndByte = newEndByte;
 }// end setEndByte
 
 
@@ -284,11 +286,11 @@ void MsgParser::setEndByte(uint8_t newEndByte)
 long MsgParser::getLong()
 {
     char *numPtr;
-    char *ptr = bufferReadPtr;                      // make ptr point to start of Buffer.
+    char *ptr = m_pRead;                            // make ptr point to start of Buffer.
     char *rest;                                     // to point to the rest of the string after token extraction.
 
     numPtr = strtok_r(ptr, " ", &rest);            //extract the number from the received message   [side note: this replaces the first space with a null]
-    bufferReadPtr = rest;                          // rest contains the leftover part..assign it to ptr...and start tokenizing again.
+    m_pRead = rest;                                // rest contains the leftover part..assign it to ptr...and start tokenizing again.
 
     return( atol(numPtr) );
 
@@ -310,11 +312,11 @@ long MsgParser::getLong()
 int MsgParser::getInt()
 {
     char *numPtr;
-    char *ptr = bufferReadPtr;                     // make ptr point to start of Buffer.
+    char *ptr = m_pRead;                           // make ptr point to start of Buffer.
     char *rest;                                    // to point to the rest of the string after token extraction.
 
     numPtr = strtok_r(ptr, " ", &rest);            //extract the number from the received message   [side note: this replaces the first space with a null]
-    bufferReadPtr = rest;                          // rest contains the leftover part..assign it to ptr...and start tokenizing again.
+    m_pRead = rest;                                // rest contains the leftover part..assign it to ptr...and start tokenizing again.
 
     return( atoi(numPtr) );
 
@@ -339,11 +341,11 @@ float MsgParser::getFloat()
 
 {
     char *numPtr;
-    char *ptr = bufferReadPtr;                     // make ptr point to start of Buffer.
+    char *ptr = m_pRead;                           // make ptr point to start of Buffer.
     char *rest;                                    // to point to the rest of the string after token extraction.
 
     numPtr = strtok_r(ptr, " ", &rest);            //extract the number from the received message   [side note: this replaces the first space with a null]
-    bufferReadPtr = rest;                          // rest contains the leftover part..assign it to ptr...and start tokenizing again.
+    m_pRead = rest;                                // rest contains the leftover part..assign it to ptr...and start tokenizing again.
 
     return( atof(numPtr) );
 
@@ -374,9 +376,9 @@ float MsgParser::getFloat()
 //================================================================================
 void MsgParser::clearTheBuffer()
 {
-    bufferWriteIndex = 0;                     //clear the buffer by setting the buffer write index to the beginning
-    bufferReadPtr = buffer;                   //move the read pointer back to the start of the buffer
-    memset(buffer, NULL, bufferlength);       //overwrite the whole buffer with nulls
+    m_BufferWriteIndex = 0;                     //clear the buffer by setting the buffer write index to the beginning
+    m_pRead = m_pInputBuffer;                         //move the read pointer back to the start of the buffer
+    memset(m_pInputBuffer, NULL, MSGPARSER_INPUT_BUFFER_SIZE);  //overwrite the whole buffer with nulls
 
 }//end clearTheBuffer
 
@@ -391,9 +393,9 @@ void MsgParser::clearTheBuffer()
 //
 // RETURNS:     
 //================================================================================
-int MsgParser::numCmds()
+uint8_t MsgParser::numCmds()
 {
-	return funcTableLength;
+	return m_funcTableLength;
 }//end numCmds
 
 
@@ -402,7 +404,7 @@ int MsgParser::numCmds()
 //
 // DESCRIPTION: Returns the command string at the requested index
 //
-// INPUT:       None
+// INPUT:       cmdIndex - index of the command in the function table.
 //
 // RETURNS:     Command string at the requested index
 //================================================================================
@@ -415,7 +417,7 @@ char* MsgParser::cmdString(uint8_t cmdIndex)
 	}
 	
 	//pull a function table entry out of flash and into ram.
-	memcpy_P( &m_bufStruct, &(funcTable[cmdIndex]), sizeof(m_bufStruct) );     
+	memcpy_P( &m_bufStruct, &(m_pFuncTable[cmdIndex]), sizeof(m_bufStruct) );     
 	
 	//Pull the command string out of flash and into ram
 	memcpy_P( m_pDescBuf, m_bufStruct.pCmdString, MSGPARSER_DESCRIPTION_SIZE);  
@@ -427,9 +429,9 @@ char* MsgParser::cmdString(uint8_t cmdIndex)
 //================================================================================
 // FUNCTION:    void cmdDesc(...)
 //
-// DESCRIPTION: Returns the description of the command specified by the index
+// DESCRIPTION: Looks up the command specified by the index and returns its description.
 //
-// INPUT:       None
+// INPUT:       cmdIndex - index of the command in the function table.
 //
 // RETURNS:     Description of the command
 //================================================================================
@@ -442,7 +444,7 @@ char* MsgParser::cmdDesc(uint8_t cmdIndex)
 	}
 	
 	//pull a function table entry out of flash and into ram.
-	memcpy_P( &m_bufStruct, &(funcTable[cmdIndex]), sizeof(m_bufStruct) );     
+	memcpy_P( &m_bufStruct, &(m_pFuncTable[cmdIndex]), sizeof(m_bufStruct) );     
 	
 	//The description string is allowed to be null. Check if it exists.
 	if(m_bufStruct.pDescString != NULL)
@@ -471,5 +473,5 @@ char* MsgParser::cmdDesc(uint8_t cmdIndex)
 //================================================================================
 uint8_t MsgParser::version()
 {
-    return  0x04;              //this is our version number
+    return  0x05;              //this is our version number
 }//end version

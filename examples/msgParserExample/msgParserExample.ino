@@ -17,7 +17,7 @@
 
 //list of strings. You can have as many as you want.
 //each string is saved in flash memory only and does not take up any ram.
-char s0[] PROGMEM = "?";	char help0[] PROGMEM = "Prints this help text.";
+char s0[] PROGMEM = "?";	char help0[] PROGMEM = "Prints this help menu.";
 char s1[] PROGMEM = "hi";	char help1[] PROGMEM = "Prints a hello message.";
 char s2[] PROGMEM = "bye";	char help2[] PROGMEM = "Prints a goodbye message.";
 char s3[] PROGMEM = "echo";	char help3[] PROGMEM = "[a number]. Prints back the number.";
@@ -72,6 +72,7 @@ void loop()
 
 void printHelp()
 {
+	//For each command that the parser knows about...
 	for( int i = 0; i < myParser.numCmds(); i++)
 	{
 		Serial.print(myParser.cmdString(i)); //print the command name

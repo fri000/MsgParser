@@ -21,7 +21,7 @@
 
 //********************** CONSTANTS **********************
 
-static const uint8_t MSGPARSER_MAX_BUFFER_SIZE = 64;                //This is the max length of a received message
+static const uint8_t MSGPARSER_INPUT_BUFFER_SIZE = 64;              //This is the max length of a received message
 static const uint8_t MSGPARSER_DESCRIPTION_SIZE = 128;              //This is the length of a description string, that is the help msg for a command.
 
 
@@ -65,7 +65,7 @@ public:
     long    getLong();
     int     getInt();
     float   getFloat();
-	int     numCmds();
+	uint8_t numCmds();
 	char*   cmdString(uint8_t cmdIndex);
 	char*   cmdDesc(uint8_t cmdIndex);
     uint8_t version();
@@ -95,27 +95,26 @@ private:
     //***************************************************
     FuncEntry_t m_bufStruct;
 
-    char    buffer[MSGPARSER_MAX_BUFFER_SIZE];     //buffer that holds incoming data
-    uint8_t bufferlength;                          //length of this buffer, which will get set to MAX_BUFFER_SIZE
-    uint8_t bufferWriteIndex;                      //index of the first free space in the buffer
-    char*   bufferReadPtr;                         //
-
-    char    origMsg[MSGPARSER_MAX_BUFFER_SIZE];    //Before we start partitioning the received message in "buffer",
-                                                   // we make a copy of it into this buffer.
-
-    char*   msgParserCommand;                      //points to the first "token" in the receive buffer
-
-    uint8_t msgStartByte;                          //this byte marks the start of the message
-    uint8_t msgEndByte;                            //this byte marks the end of the message
-    bool    useStartByte;                          //flag if the parser should use a start byte or not;
-
-    STATE_T myState;                               //keeps track of which state we are in
-
-    FuncEntry_t* funcTable;                        //pointer to the function lookup table in FLASH space
-    uint8_t funcTableLength;                       //length of the functions table
-
-    cmdNotFoundHandler_t pCmdNotFoundFunc;         // Function to call if we received a command that we are not going to handle.
-	char   m_pDescBuf[MSGPARSER_DESCRIPTION_SIZE];  // When we returning a string from PROGMEM, we first copy it here and return pointer to this buffer.
+    char    m_pInputBuffer[MSGPARSER_INPUT_BUFFER_SIZE]; //buffer that holds incoming data
+    uint8_t m_BufferWriteIndex;                          //index of the first free space in the buffer
+    char*   m_pRead;                  		             //Points to within our input buffer to the current location we are reading.
+                                                         
+    char    m_pOrigMsg[MSGPARSER_INPUT_BUFFER_SIZE];     //Before we start partitioning the received message in "buffer",
+                                                         // we make a copy of it into this buffer.
+                                                         
+    char*   m_pMsgParserCommand;                         //points to the first "token" in the receive buffer
+                                                         
+    uint8_t m_msgStartByte;                              //this byte marks the start of the message
+    uint8_t m_msgEndByte;                                //this byte marks the end of the message
+    bool    m_useStartByte;                              //flag if the parser should use a start byte or not;
+                                                         
+    STATE_T m_state;                                     //keeps track of which state we are in
+                                                         
+    FuncEntry_t* m_pFuncTable;                           //pointer to the function lookup table in FLASH space
+    uint8_t m_funcTableLength;                           //length of the functions table
+                                                         
+    cmdNotFoundHandler_t m_pCmdNotFoundFunc;             // Function to call if we received a command that we are not going to handle.
+	char   m_pDescBuf[MSGPARSER_DESCRIPTION_SIZE];       // When we returning a string from PROGMEM, we first copy it here and return pointer to this buffer.
 }; //end MsgParser
 
 
