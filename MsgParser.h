@@ -38,8 +38,8 @@ typedef void (*cmdNotFoundHandler_t)(uint8_t*, uint16_t);
 
 typedef struct
 {
-    char* pCmdString;  //pointer to a null terminated char array
-    char* pDescString; //Short help text about this command. Pointer to a null terminated char array
+    const char* pCmdString;  //pointer to a null terminated char array
+    const char* pDescString; //Short help text about this command. Pointer to a null terminated char array
     FuncPtr_t pFunc;   //pointer to a function
 
 }FuncEntry_t;
@@ -57,7 +57,7 @@ public:
 
     MsgParser();                                    //constructor
     //~MsgParser();                                   //destructor
-    void    setTable(FuncEntry_t* newFunctTable, uint8_t newFunctTableLength);
+    void    setTable(const FuncEntry_t* newFunctTable, uint8_t newFunctTableLength);
     void    useStartByteSet(bool newStatus);
     void    setEndByte(uint8_t newEndByte);
     void    setHandlerForCmdNotFound(cmdNotFoundHandler_t pNewHandlerFunc);

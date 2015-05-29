@@ -54,11 +54,11 @@ MsgParser::MsgParser()
 //
 // RETURNS:     Nothing
 //================================================================================
-void MsgParser::setTable(FuncEntry_t* newFunctTable, uint8_t newFunctTableLength)
+void MsgParser::setTable(const FuncEntry_t* newFunctTable, uint8_t newFunctTableLength)
 {
     if(newFunctTable != NULL)
     {
-        m_pFuncTable = newFunctTable;
+        m_pFuncTable = (FuncEntry_t*)newFunctTable;
         m_funcTableLength = newFunctTableLength;
     }
 }// end setTable

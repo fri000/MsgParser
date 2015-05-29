@@ -17,15 +17,15 @@
 
 //list of strings. You can have as many as you want.
 //each string is saved in flash memory only and does not take up any ram.
-char s0[] PROGMEM = "?";	char help0[] PROGMEM = "Prints this help menu.";
-char s1[] PROGMEM = "hi";	char help1[] PROGMEM = "Prints a hello message.";
-char s2[] PROGMEM = "bye";	char help2[] PROGMEM = "Prints a goodbye message.";
-char s3[] PROGMEM = "echo";	char help3[] PROGMEM = "[a number]. Prints back the number.";
-char s4[] PROGMEM = "add";	char help4[] PROGMEM = "[x] [y]. Prints results of x + y.";
+const char s0[] PROGMEM = "?";		const char help0[] PROGMEM = "Prints this help menu.";
+const char s1[] PROGMEM = "hi";		const char help1[] PROGMEM = "Prints a hello message.";
+const char s2[] PROGMEM = "bye";	const char help2[] PROGMEM = "Prints a goodbye message.";
+const char s3[] PROGMEM = "echo";	const char help3[] PROGMEM = "[a number]. Prints back the number.";
+const char s4[] PROGMEM = "add";	const char help4[] PROGMEM = "[x] [y]. Prints results of x + y.";
 
 
 //This is our look up table. It says which function to call when a particular string is received
-FuncEntry_t functionTable[] PROGMEM = {
+const FuncEntry_t functionTable[] PROGMEM = {
 //  String, help, Function
     {s0, help0,   printHelp       },
     {s1, help1,   sayHello        },
