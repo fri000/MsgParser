@@ -3,13 +3,13 @@ processByte	KEYWORD2
 setTable	KEYWORD2
 setEndByte	KEYWORD2
 setHandlerForCmdNotFound	KEYWORD2
-useStartByteSet KEYWORD2
-getLong	        KEYWORD2
-getInt          KEYWORD2
+useStartByteSet	KEYWORD2
+getLong	KEYWORD2
+getInt	KEYWORD2
 getFloat	KEYWORD2
 setEndByte	KEYWORD2
 numCmds	KEYWORD2
 cmdString	KEYWORD2
 cmdDesc	KEYWORD2
-version		KEYWORD2
+version	KEYWORD2
 
